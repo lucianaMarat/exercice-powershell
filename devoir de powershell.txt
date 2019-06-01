@@ -1,0 +1,209 @@
+-- le grand menu
+
+write-host <<[1]- gestions des utilisateurs>>
+write-host <<[2]- gestions des acces ssh>>
+write-host <<[3]- gestion des backup/restore >>
+write-host <<[4]- gestion du systeme>>
+
+$Serveur = Read-Host <<faites un choix entre : 1-4>>
+
+Switch ($Serveur){
+1{$Serveur = "gestion des utilisateurs"}
+2{$Serveur = "gestion des acces ssh"}
+3{$Serveur = "gestion des backup/restore"}
+4{$Serveur = "gestion du systeme"}
+}
+
+
+
+
+
+
+
+
+
+  ---affichage des utilisateurs et des groupes
+$ username  =  read-host  - prompt " Entrez un nom d'utilisateur "
+$ FILE  =  " ntfs- $ username .txt "
+$ ct  = [ System.DirectoryServices.AccountManagement.ContextType ] :: Domain
+$ user  = [ System.DirectoryServices.AccountManagement.UserPrincipal ] :: FindByIdentity ( $ ct ,  $ username )
+$ groups  =  $ user .GetGroups ()
+foreach ( $ i  en  $ groupes ) {
+  $ i .SamAccountName  |  Out-File  $ File  - append
+}
+ Fichier $ sortie-écriturect
+
+
+
+
+Get-WmiObject Win32_UserAccount -Filter "LocalAccount='True'" | Select Name
+Get-LocalGroupMember -Name "Administrators" | Select Name
+Get-ADGroupMember -Name "Administrators" | Select Name
+
+# Liste des machines
+get-content "path\Liste_des_machines.txt"| % {
+# retour d'info sur la machine contenu dans le string
+$Computer = ($_)
+# mise en place de la variable $Computer indiquant le contexte de recherche
+$Computer = [ADSI]"WinNT://$Computer"
+# Mise en place de $Group pour lister les groupes
+$Groups = $Computer.psbase.Children | Where {$_.psbase.schemaClassName -eq "group"}
+# Mise en place de la boucle pour rechercher chaque info dans chaque conteneur
+ForEach ($Group In $Groups)
+{
+# Mise en place du groupe et son nom
+    "Group: " + $Group.Name
+# Mise en place de la recherche des membres
+    $Members = @($Group.psbase.Invoke("Members"))
+# Mise en place de la liste utilisateur et ouverture de la boucle
+    ForEach ($Member In $Members)
+    {
+# Mise en place de la valeur $Class pour savoir si c'est un groupe ou un utilisateur qui est placé dans le groupe
+        $Class = $Member.GetType().InvokeMember("Class", 'GetProperty', $Null, $Member, $Null)
+# Mise en place de l'affichage du nom de l'utilisateur
+        $Name = $Member.GetType().InvokeMember("Name", 'GetProperty', $Null, $Member, $Null)
+# Affichage du résultat
+        "-- Member: $Name ($Class)"
+    }
+}
+}
+
+
+
+
+
+
+
+-- modification des utilisateurs
+if($nom){
+ $new-nom = Read-Host "vous pouvez modifier votre nom"
+	if($new_nom){
+	$new_NC = Read-Host " il faut aussi modifier le nom complet"
+	set-ADuser -name $new_nom  -fullname $new_NC  -desc $Service  -Password  $Password
+	}
+}
+if($new_service){
+	$new_NC = Read-Host " modifier votre service"
+	set-ADuser -name $nom  -fullname $NC  -desc $new_Service  -Password  $Password
+	}
+
+
+
+$Users = Import-Csv -Path ".\user.csv" -Delimiter ";"
+foreach ($User in $Users) 
+{ 
+    $ident = $User.prenom + "." + $User.nom
+ 
+Disable-ADAccount -Identity $ident
+}
+
+
+3 – Supprimer la première ligne d’un fichier texte :
+
+Get-Content .\in.txt| Select-Object -Skip 1 | Set-Content .\out.txt
+
+ajout ligne
+ADD-content -path C:\temp\test.txt -value "Bonjour"
+
+
+
+
+&run"azert.ps1"
+
+[ENVIRONMENT]::UserDomainName
+
+backup
+
+Compress-Archive -Path C:\Reference\* -Update -DestinationPath C:\Archives\Draft.Zip
+
+afficher
+foreach(line in $csv){
+compresse-archirve
+}
+
+
+
+
+
+$CheminFichier = 'C:\tmp\ThisFile.doc'
+Copy-Item -Path $CheminFichier –Destination ([io.path]::ChangeExtension($CheminFichier, '.bak')) -Verbose
+
+
+
+
+
+Ce script permet de savoir qui est connecté en ce moment sur un ordinateur distant.
+Ça marche sur Windows XP et Windows Seven.
+
+?View Code POWERSHELL
+$computer = Read-Host "Enter the computer Name"
+$loginfo = Get-WmiObject -Computer $Computer -Class Win32_ComputerSystem
+"Machine Name: " + $loginfo.Name 
+"User Name: " + $loginfo.UserName
+
+
+
+
+
+
+
+
+
+
+
+Maintenant si tout c’est bien passé, vous pouvez entrer vos commandes linux dans votre invite commandes.
+
+Passons à l’étape qui vous intéresse le plus, exécuter une commande sur votre linux depuis votre script Powershell. Pour celà je ne vais pas réinventer la roue, j’ai récupéré le script POWERSHELL suivant sur le site de : Chris Towles. Pas de panique le script est téléchargeable plus bas et il est bien commenté afin de le personnaliser simplement et rapidement.
+
+?
+
+Function Invoke-SSHCommands {
+Param($Hostname,$Username,$Password, $CommandArray, $PlinkAndPath, $ConnectOnceToAcceptHostKey = $true)
+ 
+$Target = $Username + '@' + $Hostname
+$plinkoptions = "-ssh $Target -pw $Password"
+ 
+#Build ssh Commands
+$CommandArray += "exit"
+$remoteCommand = ""
+$CommandArray | % {$remoteCommand += [string]::Format('{0}; ', $_) }
+ 
+#plist prompts to accept client host key. This section will login and accept the host key then logout.
+if($ConnectOnceToAcceptHostKey)
+{
+$PlinkCommand = [string]::Format('echo y | & "{0}" {1} exit', $PlinkAndPath, $plinkoptions )
+#Write-Host $PlinkCommand
+$msg = Invoke-Expression $PlinkCommand
+}
+ 
+#format plist command
+$PlinkCommand = [string]::Format('& "{0}" {1} "{2}"', $PlinkAndPath, $plinkoptions , $remoteCommand)
+ 
+#ready to run the following command
+#Write-Host $PlinkCommand
+$msg = Invoke-Expression $PlinkCommand
+$msg
+}
+#Identifiants à remplacer
+#Chemin du PLINK
+$PlinkAndPath = "C:\Program Files (x86)\PuTTY\plink.exe"
+#Nom utilisateur de votre compte linux
+$Username = "root"
+#Mot de passe de l'utilisateur de votre compte linux
+$Password = "pa$$w0rd"
+#Nom de votre serveur Linux ou IP de votre serveur Linux
+$Hostname = "Linuxhost"
+ 
+#Entrez les commandes que vous souhaitez exécuter
+ 
+#Ne pas supprimer la commande : $Commands = @()
+$Commands = @()
+$Commands += "ls"
+$Commands += "whoami"
+ 
+Invoke-SSHCommands -User $Username -Hostname $Hostname -Password $Password -PlinkAndPath $PlinkAndPath -CommandArray $Com
+
+
+en utilisant des reccord de table ,
+on le remplit a partir de la table employe
+et on utilise le reccod de table plein pour afficher le nom et le salaire
